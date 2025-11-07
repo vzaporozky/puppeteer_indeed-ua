@@ -1,6 +1,6 @@
 {
 	"compilerOptions": {
-		"module": "NodeNext",
+		"module": "CommonJS",
 		"target": "es2020",
 		"rootDir": ".",
 		"outDir": "./dist",
