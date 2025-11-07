@@ -2,6 +2,7 @@ import { Browser, Page } from 'puppeteer-core';
 import fs from 'fs';
 import dotenv from 'dotenv';
 import { scroll } from '../utils/scroll.js';
+import { closeAskNotify } from '../utils/closeAskNotify.js';
 
 dotenv.config();
 
@@ -24,6 +25,8 @@ const scrape = async (page: Page): Promise<string[]> => {
 	);
 
 	for (let pageNum = 1; pageNum <= Number(max_pages); pageNum++) {
+		await closeAskNotify(page);
+
 		await page.waitForSelector('div[data-testid="slider_item"]');
 		const jobCards = await page.$$('div[data-testid="slider_item"]');
 
