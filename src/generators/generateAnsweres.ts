@@ -1,45 +1,78 @@
 import { ElementHandle, Page } from 'puppeteer-core';
-import { generateAnswerrDeepSeek } from './deepSeek.js';
+import { generateDeepSeek } from './deepSeek.js';
 import { GenerationResult } from '../core/apply.js';
 import { generateCoverLetter } from './generateCoverLetter.js';
+import { defineType } from '../utils/defineType.js';
 
 const generateAnsweres = async (
-	page2: Page,
 	generationPromises: Promise<GenerationResult>[],
+
 	questions?: ElementHandle<Element>[]
 ) => {
 	for (const elem of questions) {
-		const label = await elem.$('label.form-label');
-		if (!label) continue;
+		const textSpan = await elem.$(
+			'span.mosaic-provider-module-apply-questions-1wsk8bh'
+		);
 
-		const forValue = await label.evaluate(el => el.getAttribute('for'));
-		if (!forValue) continue;
+		const typeObj = await defineType(elem);
 
-		const type = forValue.split('_')[1];
+		console.log(typeObj.type);
 
-		if (type === 'text') {
-			const textPromise = label
-				.evaluate(el => el.innerText.trim())
-				.then(text => generateAnswerrDeepSeek('answer', text))
-				.then(answerJson => ({ answerJson, elem, forValue }));
+		if (typeObj.type === 'text') {
+			const textPromise = textSpan
+				.evaluate(el => el.textContent?.trim())
+				.then(text => generateDeepSeek('text', text))
+				.then(answerJson => ({ answerJson, elem }));
 
 			generationPromises.push(textPromise);
-		} else if (type === 'boolean') {
-			const inputRadio = await elem.$('input.form-check-input');
-			if (inputRadio) {
-				await inputRadio.click();
-			}
-		} else if (type === 'numeric') {
-			const textPromise = label
-				.evaluate(el => el.innerText.trim())
-				.then(text => generateAnswerrDeepSeek('numeric', text))
-				.then(answerJson => ({ answerJson, elem, forValue }));
+		} else if (typeObj.type === 'radio') {
+			const allRadio = await elem.$$(
+				'span.mosaic-provider-module-apply-questions-1hx0a07'
+			);
+			const radioTexts = [];
 
+			for (const elem of allRadio) {
+				const text = await elem.evaluate(el => el.textContent?.trim());
+				radioTexts.push(text);
+			}
+
+			const textPromise = generateDeepSeek('radio', radioTexts).then(
+				answerJson => ({ answerJson, elem })
+			);
+			generationPromises.push(textPromise);
+		} else if (typeObj.type === 'checkbox') {
+			const allCheckbox = await elem.$$(
+				'span.mosaic-provider-module-apply-questions-1br6eau'
+			);
+			const checkboxTexts = [];
+
+			for (const elem of allCheckbox) {
+				const text = await elem.evaluate(el => el.textContent?.trim());
+				checkboxTexts.push(text);
+			}
+
+			const textPromise = generateDeepSeek('checkbox', checkboxTexts).then(
+				answerJson => ({ answerJson, elem })
+			);
+			generationPromises.push(textPromise);
+		} else if (typeObj.type === 'select') {
+			const select = await elem.$('select');
+			const allOption = await select.$$(
+				'span.mosaic-provider-module-apply-questions-1br6eau'
+			);
+			const selectTexts = [];
+
+			for (const elem of allOption) {
+				const text = await elem.evaluate(el => el.getAttribute('label'));
+				selectTexts.push(text);
+			}
+
+			const textPromise = generateDeepSeek('select', selectTexts).then(
+				answerJson => ({ answerJson, elem })
+			);
 			generationPromises.push(textPromise);
 		}
 	}
-
-	await generateCoverLetter(page2, generationPromises);
 
 	return generationPromises;
 };

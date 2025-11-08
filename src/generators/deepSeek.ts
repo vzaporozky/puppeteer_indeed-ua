@@ -8,17 +8,11 @@ dotenv.config();
 const apiKey = process.env.DEEP_SEEK_API;
 const apiUrl = 'https://api.deepseek.com/v1/chat/completions';
 
-async function generateAnswerrDeepSeek(answer: string, text?: string) {
+async function generateDeepSeek(answer: string, text?: string | string[]) {
+	console.log('start gen deepseek ' + text);
 	try {
 		let prompt;
-		if (answer == 'answer') {
-			prompt = `
-        Ответь на вопрос(на английском языке). Пиши от моего лица и не упоминай резюме.
-        Мое резюме = ${cv}. 
-        Вопрос = ${text}. 
-        Верни результат в JSON. пример json: {answer:string}.
-         `;
-		} else if (answer == 'coverLetter') {
+		if (answer == 'coverLetter') {
 			prompt = `Мое резюме = ${cv}.
         Вакансия = ${text}.
         Сгенерируй cover letter(на английском языке) для вакансии. Пиши от моего лица и не упоминай резюме.
@@ -27,15 +21,30 @@ async function generateAnswerrDeepSeek(answer: string, text?: string) {
         Письмо раздели на блоки: hello, aboutMe, howMySkillsFitCompany, myPassiontToWorkInCompany, myContacts.
         Верни результат в JSON. пример json: {coverLetter:{hello:string, aboutMe:string, 
         howMySkillsFitCompany:string, myPassiontToWorkInCompany:string, myContacts:string }}.
-         `;
-		} else if (answer == 'numeric') {
+        `;
+		} else if (answer == 'text') {
 			prompt = `
-        Ответь на вопрос(только число).
+        Ответь на вопрос(на английском языке). Пиши от моего лица и не упоминай резюме.
         Мое резюме = ${cv}. 
-        Вопрос = ${text}. (если вопрос о зарплате, то укажи 700.)
-				Ответ должен быть только числом
-        Верни результат в JSON. пример json: {answer:number}.
-         `;
+        Вопрос = ${text}. 
+        Верни результат в JSON. пример json: {answer:string}.
+        `;
+		} else if (answer == 'radio' || answer == 'select') {
+			prompt = `
+        Выбери один вариант из предоставленых основываясь на моем cv.
+        Мое резюме = ${cv}. 
+        Варианты = ${text}. 
+				Ответ должен быть одним и таким же как вариант.
+        Верни результат в JSON. пример json: {answer:sting}.
+        `;
+		} else if (answer == 'checkbox') {
+			prompt = `
+        Выбери один или несколько вариантов из предоставленых основываясь на моем cv.
+        Мое резюме = ${cv}. 
+        Варианты = ${text}. 
+				Ответ должен быть одним и таким же как вариант.
+        Верни результат в JSON. пример json: {answer:sting[]}.
+        `;
 		}
 
 		const response = await axios.post(
@@ -66,4 +75,4 @@ async function generateAnswerrDeepSeek(answer: string, text?: string) {
 	}
 }
 
-export { generateAnswerrDeepSeek };
+export { generateDeepSeek };

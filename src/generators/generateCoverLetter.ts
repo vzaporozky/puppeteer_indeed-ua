@@ -1,5 +1,5 @@
 import { Page } from 'puppeteer-core';
-import { generateAnswerrDeepSeek } from './deepSeek.js';
+import { generateDeepSeek } from './deepSeek.js';
 import { GenerationResult } from '../core/apply.js';
 
 const generateCoverLetter = async (
@@ -23,7 +23,7 @@ const generateCoverLetter = async (
 
 			return [...pTexts, ...ulTexts].filter(t => t).join('\n\n');
 		})
-		.then(text => generateAnswerrDeepSeek('coverLetter', text))
+		.then(text => generateDeepSeek('coverLetter', text))
 		.then(answerJson => ({ answerJson, elem }));
 
 	generationPromises.push(textPromise);

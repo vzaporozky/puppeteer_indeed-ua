@@ -1,10 +1,12 @@
-import { Browser, Page } from 'puppeteer';
+import { Browser, Page } from 'puppeteer-core';
 import fs from 'fs';
 import dotenv from 'dotenv';
 import { scroll } from '../utils/scroll.js';
 import { generateAnsweres } from '../generators/generateAnsweres.js';
 import { finishPromise } from './finishPromise.js';
 import { generateCoverLetter } from '../generators/generateCoverLetter.js';
+import answerEasyQuest from '../generators/answerEasyQuest.js';
+import { defineType } from '../utils/defineType.js';
 
 dotenv.config();
 
@@ -19,48 +21,91 @@ const delay_max = Number(process.env.delay_max);
 
 const delay = ms => new Promise(res => setTimeout(res, ms));
 
-const apply = async (
-	browser: Browser,
-	jobs: { title: string; url: string; id: string }[]
-): Promise<void> => {
+const apply = async (browser: Browser, jobs: string[]): Promise<void> => {
 	let appliedCount = 0;
-	const applied = JSON.parse(fs.readFileSync('applied.json', 'utf8') || '[]');
+	// const applied = JSON.parse(fs.readFileSync('applied.json', 'utf8') || '[]');
 
 	const page2 = await browser.newPage();
 	await page2.setViewport({ width: 1080, height: 1024 });
 
 	for (const job of jobs) {
-		if (!job.id || applied.includes(job.id)) continue;
+		// console.log(job);
+		// if (!job.id || applied.includes(job.id)) continue;
 
-		await page2.goto(job.url);
+		await page2.goto(job);
 
-		await page2.waitForSelector('.js-inbox-toggle-reply-form');
-		const element = await page2.$('.js-inbox-toggle-reply-form');
-		if (!element) continue;
-		await page2.evaluate(scroll);
-		await element.click();
+		await delay(3000);
 
-		const formApply = await page2.$('form#apply_form');
-		await page2.waitForSelector('textarea#message');
-		const h3_questions = await formApply.$('h3.mb-3');
+		const oldBlock = await page2.$('.css-1j9ktms');
+		if (oldBlock) continue;
+		await delay(2000);
 
-		const generationPromises: Promise<GenerationResult>[] = [];
-		if (h3_questions) {
-			const parent = await h3_questions.evaluateHandle(el => el.parentElement);
-			const questions = await parent.$$('.mb-3');
-			questions.shift;
+		const btnApply = await page2.$('button.css-a75pkb');
+		if (!btnApply) continue;
+		await btnApply.click();
+		await delay(4000);
 
-			await generateAnsweres(page2, generationPromises, questions);
-		} else await generateCoverLetter(page2, generationPromises);
+		const allButtonsFirst = await page2.$$('button[type="button"]');
+		await allButtonsFirst[1].click(); // продолжить
 
-		await finishPromise(page2, generationPromises);
+		await delay(5000);
+		const allQuestions = await page2.$$(
+			'div.ia-Questions-item mosaic-provider-module-apply-questions-1iqcevu'
+		);
+		console.log('found all questions');
 
-		/////////////////////
-		await page2.click('button[type="submit"]');
+		if (allQuestions) {
+			const questions = [];
+			const generationPromises: Promise<GenerationResult>[] = [];
 
-		applied.push(job.id);
-		appliedCount++;
-		console.log(`Applied: ${job.title}`);
+			for (const question of allQuestions) {
+				const typeObj = await defineType(question);
+				if (!typeObj) continue;
+
+				console.log('defined type');
+
+				const textSpan = await question.$(
+					'span.mosaic-provider-module-apply-questions-1wsk8bh'
+				);
+				const text = await textSpan.evaluate(el => el.textContent?.trim());
+				const easy = await answerEasyQuest(question, text);
+				if (easy) continue;
+
+				console.log(easy);
+
+				const requird = await question.$(
+					'span.mosaic-provider-module-apply-questions-cqp66h'
+				);
+				if (!requird) continue;
+
+				console.log(requird);
+
+				questions.push(question);
+			}
+
+			await generateAnsweres(generationPromises, questions);
+			await finishPromise(page2, generationPromises);
+
+			await delay(1000);
+			const error = await page2.$(
+				'div.mosaic-provider-module-apply-questions-1ygtsft'
+			);
+			if (error) continue;
+		}
+
+		await delay(3000);
+
+		const allButtonsFinish = await page2.$$('button[type="button"]');
+		await allButtonsFinish[6].click(); // продолжить
+
+		// await generateCoverLetter(page2, generationPromises);
+
+		// /////////////////////
+		// await page2.click('button[type="submit"]');
+
+		// applied.push(job.id);
+		// appliedCount++;
+		// console.log(`Applied: ${job.title}`);
 		await delay(Math.random() * (delay_max - delay_min) + delay_min);
 	}
 };

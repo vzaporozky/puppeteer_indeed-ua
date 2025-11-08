@@ -7,51 +7,51 @@ const finishPromise = async (
 ) => {
 	const results = await Promise.all(generationPromises);
 
-	const coverLetterElement = await page2.$('textarea#message');
+	// const coverLetterElement = await page2.$('textarea#message');
 
 	console.log(results);
 
-	for (const result of results) {
-		const { answerJson, elem, forValue } = result;
-		const { answer, coverLetter } = answerJson;
+	// 	for (const result of results) {
+	// 		const { answerJson, elem, forValue } = result;
+	// 		const { answer, coverLetter } = answerJson;
 
-		if (coverLetter) {
-			await coverLetterElement.type(
-				` ${coverLetter.hello}
+	// 		if (coverLetter) {
+	// 			await coverLetterElement.type(
+	// 				` ${coverLetter.hello}
 
-${coverLetter.aboutMe}
+	// ${coverLetter.aboutMe}
 
-${coverLetter.howMySkillsFitCompany}
+	// ${coverLetter.howMySkillsFitCompany}
 
-${coverLetter.myPassiontToWorkInCompany}
+	// ${coverLetter.myPassiontToWorkInCompany}
 
-${coverLetter.myContacts}
-					`.trim()
-			);
+	// ${coverLetter.myContacts}
+	// 					`.trim()
+	// 			);
 
-			console.log(coverLetter);
+	// 			console.log(coverLetter);
 
-			continue;
-		}
+	// 			continue;
+	// 		}
 
-		const type = forValue.split('_')[1];
+	// 		const type = forValue.split('_')[1];
 
-		if (type === 'text') {
-			const textarea = await elem.$(`textarea#${forValue}`);
-			if (textarea) {
-				await textarea.type(answer.trim());
-			}
-		} else if (type === 'numeric') {
-			const input = await elem.$(`input#${forValue}`);
-			if (input) {
-				await input.evaluate((el, val) => {
-					el.value = val;
-					el.dispatchEvent(new Event('input', { bubbles: true }));
-					el.dispatchEvent(new Event('change', { bubbles: true }));
-				}, answer);
-			}
-		}
-	}
+	// 		if (type === 'text') {
+	// 			const textarea = await elem.$(`textarea#${forValue}`);
+	// 			if (textarea) {
+	// 				await textarea.type(answer.trim());
+	// 			}
+	// 		} else if (type === 'numeric') {
+	// 			const input = await elem.$(`input#${forValue}`);
+	// 			if (input) {
+	// 				await input.evaluate((el, val) => {
+	// 					el.value = val;
+	// 					el.dispatchEvent(new Event('input', { bubbles: true }));
+	// 					el.dispatchEvent(new Event('change', { bubbles: true }));
+	// 				}, answer);
+	// 			}
+	// 		}
+	// 	}
 };
 
 export { finishPromise };
